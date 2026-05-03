@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+  sessions    Session[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  capacity    Int?
+  eventId     String
+  roomId      String
+  event       Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  room        Room @relation(fields: [roomId], references: [id])
+  speakers    SpeakerSession[]
+  questions   Question[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([roomId])
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sessions  Session[]
+  createdAt DateTime @default(now())
+}
+
+model Speaker {
+  id           String   @id @default(cuid())
+  name         String
+  photoUrl     String?
+  bio          String?
+  socialLinks  Json?
+  sessions     SpeakerSession[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SpeakerSession {
+  id        String   @id @default(cuid())
+  speakerId String
+  sessionId String
+  speaker   Speaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([speakerId, sessionId])
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  content   String
+  author    String?
+  votes     Int      @default(0)
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  questionVotes QuestionVote[]
+
+  @@index([sessionId])
+  @@index([votes])
+}
+
+model QuestionVote {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String?
+  createdAt  DateTime @default(now())
+}
