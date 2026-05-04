@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const speakers = await prisma.speaker.findMany();
+  const sessions = await prisma.session.findMany();
 
-  return new Response(JSON.stringify(speakers), {
+  return new Response(JSON.stringify(sessions), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Range": `speakers 0-${speakers.length - 1}/${speakers.length}`,
+      "Content-Range": `sessions 0-${sessions.length - 1}/${sessions.length}`,
       "Access-Control-Expose-Headers": "Content-Range",
     },
   });
