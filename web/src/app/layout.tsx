@@ -6,7 +6,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className="scroll-smooth">
       <body className="antialiased bg-black min-h-screen flex flex-col">
-        <Navbar />
+      <Navbar/>
         <div className="flex-grow">{children}</div>
         <Footer />
       </body>

@@ -1,7 +1,16 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const events = await prisma.event.findMany();
+  const events = await prisma.event.findMany({
+    include: {
+      sessions: true,
+      _count: {
+        select: {
+          sessions: true,
+        },
+      },
+    },
+  });
 
   return new Response(JSON.stringify(events), {
     headers: {
