@@ -18,7 +18,12 @@ interface QuestionListProps {
   onQuestionAdded: () => void;
 }
 
-export default function QuestionList({ questions, sessionId, isLive, onQuestionAdded }: QuestionListProps) {
+export default function QuestionList({
+  questions,
+  sessionId,
+  isLive,
+  onQuestionAdded,
+}: QuestionListProps) {
   const [newQuestion, setNewQuestion] = useState("");
   const [author, setAuthor] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -38,14 +43,12 @@ export default function QuestionList({ questions, sessionId, isLive, onQuestionA
           author: isAnonymous ? null : author,
         }),
       });
-      
+
       if (res.ok) {
         setNewQuestion("");
         setAuthor("");
         onQuestionAdded();
       }
-    } catch (error) {
-      console.error("Error posting question:", error);
     } finally {
       setSubmitting(false);
     }
@@ -59,50 +62,55 @@ export default function QuestionList({ questions, sessionId, isLive, onQuestionA
         body: JSON.stringify({ questionId }),
       });
       onQuestionAdded();
-    } catch (error) {
-      console.error("Error upvoting:", error);
-    }
+    } catch {}
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
+
       {isLive && (
-        <div className="bg-gray-50 rounded-xl p-6">
-          <h4 className="font-semibold text-gray-900 mb-4">Poser une question</h4>
+        <div className="bg-white/5 border border-white/10 backdrop-blur rounded-[28px] p-6">
+          <h4 className="text-white font-black uppercase tracking-[0.2em] mb-6 text-sm">
+            Poser une question
+          </h4>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <textarea
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
               placeholder="Votre question..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-[#2ecc71]"
               rows={3}
               required
             />
-            <div className="flex items-center justify-between">
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-600">
+                <label className="flex items-center gap-2 text-xs text-gray-400 uppercase tracking-[0.2em]">
                   <input
                     type="checkbox"
                     checked={isAnonymous}
                     onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="rounded"
+                    className="accent-[#2ecc71]"
                   />
-                  Poser anonymement
+                  Anonyme
                 </label>
+
                 {!isAnonymous && (
                   <input
                     type="text"
                     value={author}
                     onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="Votre nom"
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Nom"
+                    className="px-3 py-2 bg-black/30 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#2ecc71]"
                   />
                 )}
               </div>
+
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-3 bg-[#2ecc71] text-black font-black uppercase text-[10px] tracking-[0.2em] rounded-2xl hover:opacity-90 transition disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 Envoyer
@@ -112,36 +120,48 @@ export default function QuestionList({ questions, sessionId, isLive, onQuestionA
         </div>
       )}
 
-      <div>
-        <h4 className="font-semibold text-gray-900 mb-4">
+      <div className="space-y-6">
+        <h4 className="text-white font-black uppercase tracking-[0.2em] text-sm">
           Questions ({questions.length})
         </h4>
-        <div className="space-y-4">
-          {questions.map((question) => (
-            <div key={question.id} className="bg-white border rounded-lg p-4">
-              <div className="flex justify-between">
-                <div className="flex-1">
-                  <p className="text-gray-900">{question.content}</p>
-                  <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                    <span>Par {question.author || "Anonyme"}</span>
-                    <span>•</span>
-                    <span>{new Date(question.createdAt).toLocaleTimeString()}</span>
-                  </div>
+
+        {questions.length === 0 && (
+          <p className="text-gray-500 text-center py-10">
+            Aucune question pour le moment
+          </p>
+        )}
+
+        {questions.map((question) => (
+          <div
+            key={question.id}
+            className="bg-white/5 border border-white/10 rounded-[24px] p-5 backdrop-blur"
+          >
+            <div className="flex justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-white">{question.content}</p>
+
+                <div className="flex items-center gap-3 mt-3 text-xs uppercase tracking-[0.2em] text-gray-500">
+                  <span>{question.author || "Anonyme"}</span>
+                  <span>•</span>
+                  <span>
+                    {new Date(question.createdAt).toLocaleTimeString("fr-FR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
-                <button
-                  onClick={() => handleUpvote(question.id)}
-                  className="flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                  <span className="font-semibold">{question.votes}</span>
-                </button>
               </div>
+
+              <button
+                onClick={() => handleUpvote(question.id)}
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 text-white rounded-xl hover:bg-white/20 transition"
+              >
+                <ThumbsUp className="w-4 h-4 text-[#2ecc71]" />
+                <span className="font-black">{question.votes}</span>
+              </button>
             </div>
-          ))}
-          {questions.length === 0 && (
-            <p className="text-gray-500 text-center py-8">Aucune question pour le moment</p>
-          )}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

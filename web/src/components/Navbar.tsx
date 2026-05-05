@@ -22,7 +22,6 @@ export default function Navbar() {
   const isLoginPage = pathname === "/admin/login";
   const isFavorites = pathname === "/favorites";
   
-  // La Navbar passe en style Admin si on est dans /admin OU si on est sur Favorites en étant connecté
   const showAdminStyle = (isAdminPath || isFavorites) && isLoggedIn;
 
   return (
@@ -37,7 +36,6 @@ export default function Navbar() {
         </span>
       </Link>
 
-      {/* CENTRE : Liens Navigation (Seulement si PAS Admin Style) */}
       {!showAdminStyle && !isLoginPage && (
         <div className="hidden md:flex items-center gap-8">
           <Link href="/#events-section" className="text-gray-400 hover:text-[#2ecc71] text-[10px] font-black uppercase tracking-[0.2em] transition-colors">
@@ -49,7 +47,6 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* DROITE : Action Dynamique */}
       <div className="flex items-center gap-4">
         {showAdminStyle ? (
           <div className="flex items-center gap-2 px-4 py-2 bg-[#2ecc71]/10 border border-[#2ecc71]/20 rounded-full">

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const events = await prisma.event.findMany({
@@ -10,6 +10,9 @@ export async function GET() {
         },
       },
     },
+    orderBy: {
+      startDate: "asc",
+    },
   });
 
   return new Response(JSON.stringify(events), {
@@ -17,6 +20,26 @@ export async function GET() {
       "Content-Type": "application/json",
       "Content-Range": `events 0-${events.length - 1}/${events.length}`,
       "Access-Control-Expose-Headers": "Content-Range",
+    },
+  });
+}
+
+export async function POST(req: Request) {
+  const { title, description, location, startDate, endDate } = await req.json();
+
+  const event = await prisma.event.create({
+    data: {
+      title,
+      description,
+      location,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+    },
+  });
+
+  return new Response(JSON.stringify(event), {
+    headers: {
+      "Content-Type": "application/json",
     },
   });
 }
