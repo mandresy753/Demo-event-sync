@@ -1,56 +1,62 @@
-﻿"use client";
-
-import { useEffect, useState } from "react";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { User, ArrowRight } from "lucide-react";
 
-type Speaker = {
-  id: string;
-  name: string;
-  bio: string | null;
-  photoUrl: string | null;
-};
-
-export default function SpeakersPage() {
-  const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/speakers", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        setSpeakers(data);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2ecc71]"></div>
-      </div>
-    );
-  }
+export default async function SpeakersPage() {
+  const speakers = await prisma.speaker.findMany({
+    orderBy: { name: "asc" },
+  });
 
   return (
-    <div className="min-h-screen bg-white py-24">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="mb-12">
-          <span className="text-[#2ecc71] text-[10px] uppercase tracking-[0.3em] font-black mb-2 block">Intervenants</span>
-          <h1 className="text-5xl font-black text-black">Nos speakers</h1>
-          <p className="mt-4 text-gray-500 max-w-3xl">Accédez à la page publique des intervenants et découvrez leurs sessions associées.</p>
+    <div className="min-h-screen bg-black py-24">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="mb-14">
+          <span className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.3em] mb-2 block">
+            INTERVENANTS
+          </span>
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-white">
+            Experts & Speakers
+          </h1>
+          <p className="mt-4 text-gray-400 max-w-3xl">
+            Découvrez les experts qui partagent leurs connaissances lors de nos événements.
+          </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {speakers.map((speaker) => (
-            <Link key={speaker.id} href={`/speakers/${speaker.id}`} className="group block rounded-3xl border border-gray-200 p-8 shadow-sm transition hover:border-[#2ecc71] hover:bg-[#f8fffb]">
-              <div className="flex items-center gap-5">
-                <div className="h-20 w-20 rounded-3xl overflow-hidden bg-gray-100 flex items-center justify-center text-2xl text-gray-500">
-                  {speaker.photoUrl ? <img src={speaker.photoUrl} alt={speaker.name} className="h-full w-full object-cover" /> : speaker.name.charAt(0)}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{speaker.name}</h2>
-                  <p className="text-gray-500 mt-2 line-clamp-2">{speaker.bio || "Aucune biographie disponible."}</p>
-                </div>
+            <Link
+              key={speaker.id}
+              href={`/speakers/${speaker.id}`}
+              className="group bg-white/5 border border-white/10 rounded-[32px] p-8 hover:border-[#2ecc71] transition"
+            >
+              <div className="relative w-24 h-24 mb-6 mx-auto">
+                {speaker.photoUrl ? (
+                  <img
+                    src={speaker.photoUrl}
+                    alt={speaker.name}
+                    className="w-full h-full object-cover rounded-full grayscale group-hover:grayscale-0 transition duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/10 rounded-full flex items-center justify-center">
+                    <User className="w-10 h-10 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute inset-0 rounded-full border-2 border-transparent group-hover:border-[#2ecc71] transition duration-500"></div>
+              </div>
+
+              <div className="text-center">
+                <h2 className="text-xl font-black text-white group-hover:text-[#2ecc71] transition">
+                  {speaker.name}
+                </h2>
+                <p className="text-gray-500 text-xs uppercase tracking-[0.2em] mt-2 line-clamp-2">
+                  {speaker.bio || "Intervenant"}
+                </p>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/5 flex justify-center">
+                <span className="text-[#2ecc71] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+                  Voir le profil <ArrowRight className="w-3 h-3" />
+                </span>
               </div>
             </Link>
           ))}

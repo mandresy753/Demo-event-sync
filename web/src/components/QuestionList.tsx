@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ThumbsUp, Send } from "lucide-react";
+import { submitQuestion, upvoteQuestion } from "@/lib/actions";
 
 interface Question {
   id: string;
@@ -15,7 +16,7 @@ interface QuestionListProps {
   questions: Question[];
   sessionId: string;
   isLive: boolean;
-  onQuestionAdded: () => void;
+  onQuestionAdded?: () => void;
 }
 
 export default function QuestionList({
@@ -35,20 +36,12 @@ export default function QuestionList({
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: newQuestion,
-          author: isAnonymous ? null : author,
-        }),
-      });
-
-      if (res.ok) {
-        setNewQuestion("");
-        setAuthor("");
-        onQuestionAdded();
-      }
+      await submitQuestion(sessionId, newQuestion, isAnonymous ? null : author);
+      setNewQuestion("");
+      setAuthor("");
+      if (onQuestionAdded) onQuestionAdded();
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -56,12 +49,8 @@ export default function QuestionList({
 
   const handleUpvote = async (questionId: string) => {
     try {
-      await fetch(`/api/sessions/${sessionId}/questions`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId }),
-      });
-      onQuestionAdded();
+      await upvoteQuestion(questionId, sessionId);
+      if (onQuestionAdded) onQuestionAdded();
     } catch {}
   };
 

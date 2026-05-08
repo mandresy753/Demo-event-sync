@@ -1,98 +1,72 @@
-"use client";
+import { prisma } from "@/lib/prisma";
+import { Calendar, Clock, MapPin, Users, User, Star, LayoutGrid, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Calendar, Clock, MapPin, Users, User, Star, MessageCircle } from "lucide-react";
-import QuestionList from "@/components/QuestionList";
+export const revalidate = 60; // Revalidate every minute to update "Live" status
 
-interface Session {
-  id: string;
-  title: string;
-  description: string;
-  startTime: string;
-  endTime: string;
-  capacity: number | null;
-  room: { name: string };
-  speakers: Array<{ speaker: { id: string; name: string; photoUrl: string | null } }>;
-  questions: Array<{ id: string; content: string; votes: number; author: string | null; createdAt: string }>;
-}
+export default async function EventDetail({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}) {
+  const { eventId } = await params;
 
-export default function EventDetail() {
-  const params = useParams();
-  const id = params?.eventId as string;
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: {
+      sessions: {
+        include: {
+          room: true,
+          speakers: {
+            include: {
+              speaker: true,
+            },
+          },
+        },
+        orderBy: {
+          startTime: "asc",
+        },
+      },
+    },
+  });
 
-  const [event, setEvent] = useState<any>(null);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [refresh, setRefresh] = useState(0);
+  if (!event) return notFound();
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("favorites") || "[]");
-    setFavorites(stored);
-  }, []);
-
-  useEffect(() => {
-    if (!id) return;
-    fetchEvent();
-    fetchSessions();
-  }, [id]);
-
-  const fetchEvent = async () => {
-    const res = await fetch(`/api/events/${id}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setEvent(data);
-  };
-
-  const fetchSessions = async () => {
-    const res = await fetch(`/api/events/${id}/sessions`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setSessions(data);
-    setLoading(false);
-  };
-
-  const toggleFavorite = (sessionId: string) => {
-    let newFavorites;
-    if (favorites.includes(sessionId)) {
-      newFavorites = favorites.filter(f => f !== sessionId);
-    } else {
-      newFavorites = [...favorites, sessionId];
-    }
-    setFavorites(newFavorites);
-    localStorage.setItem("favorites", JSON.stringify(newFavorites));
-  };
-
-  const isLive = (session: Session) => {
+  const isLive = (session: any) => {
     const now = new Date();
     const start = new Date(session.startTime);
     const end = new Date(session.endTime);
     return now >= start && now <= end;
   };
 
-  if (loading || !id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2ecc71]"></div>
-      </div>
-    );
-  }
-
-  if (!event) return <div className="text-center text-gray-400">Événement non trouvé</div>;
-
   return (
     <div className="min-h-screen bg-black text-white">
       
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-black via-black/80 to-black border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <h1 className="text-5xl font-black mb-6 tracking-tight">
-            {event.title}
-          </h1>
+      <div className="relative border-b border-white/10 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 py-24 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+            <div>
+              <span className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.4em] mb-4 block">
+                ÉVÉNEMENT
+              </span>
+              <h1 className="text-6xl md:text-7xl font-black tracking-tighter max-w-4xl">
+                {event.title}
+              </h1>
+            </div>
 
-          <div className="flex flex-wrap gap-6 text-gray-400 text-sm">
-            <div className="flex items-center gap-2">
+            <Link
+              href={`/events/${eventId}/planning`}
+              className="group flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/10 rounded-2xl hover:border-[#2ecc71] transition duration-300"
+            >
+              <LayoutGrid className="w-5 h-5 text-[#2ecc71]" />
+              <span className="font-black uppercase text-[10px] tracking-widest">Voir le planning global</span>
+            </Link>
+          </div>
+
+          <div className="flex flex-wrap gap-8 text-gray-400 text-xs font-black uppercase tracking-[0.2em]">
+            <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-[#2ecc71]" />
               <span>
                 {new Date(event.startDate).toLocaleDateString('fr-FR')} -{" "}
@@ -100,70 +74,72 @@ export default function EventDetail() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-[#2ecc71]" />
               <span>{event.location}</span>
             </div>
           </div>
 
-          <p className="mt-6 text-gray-400 max-w-3xl">
+          <p className="mt-10 text-xl text-gray-400 max-w-4xl leading-relaxed">
             {event.description}
           </p>
         </div>
+
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#2ecc71]/10 blur-[150px] rounded-full -mr-64 -mt-64"></div>
       </div>
 
       {/* SESSIONS */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        <h2 className="text-3xl font-black mb-10 tracking-tight">
-          Programme des sessions
-        </h2>
+      <div className="max-w-7xl mx-auto px-6 py-24">
+        <div className="flex items-center justify-between mb-16">
+          <h2 className="text-4xl font-black tracking-tight">
+            Programme des sessions
+          </h2>
+          <span className="text-gray-500 font-black uppercase text-[10px] tracking-widest">
+            {event.sessions.length} Sessions programmées
+          </span>
+        </div>
 
-        <div className="space-y-6">
-          {sessions.map((session) => {
+        <div className="grid gap-6">
+          {event.sessions.map((session) => {
             const live = isLive(session);
-            const isFav = favorites.includes(session.id);
 
             return (
-              <div
+              <Link
                 key={session.id}
-                className={`bg-[#111] border border-white/10 rounded-3xl p-6 transition ${
-                  live ? "ring-2 ring-[#2ecc71]" : ""
+                href={`/sessions/${session.id}`}
+                className={`group block bg-white/5 border border-white/10 rounded-[40px] p-8 md:p-12 transition duration-500 hover:border-[#2ecc71]/50 ${
+                  live ? "ring-2 ring-[#2ecc71] bg-[#2ecc71]/5" : ""
                 }`}
               >
-                <div className="flex justify-between">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
                   <div className="flex-1">
-
-                    <div className="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-400">
+                    <div className="flex flex-wrap items-center gap-6 mb-6">
                       {live && (
-                        <span className="bg-[#2ecc71] text-black px-3 py-1 rounded-full text-xs font-black">
-                          LIVE
+                        <span className="bg-[#2ecc71] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
+                          En direct
                         </span>
                       )}
 
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-[#2ecc71]" />
+                      <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                        <Clock className="w-5 h-5 text-[#2ecc71]" />
                         {new Date(session.startTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })} -
                         {new Date(session.endTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </span>
 
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-[#2ecc71]" />
+                      <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                        <MapPin className="w-5 h-5 text-[#2ecc71]" />
                         {session.room.name}
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-bold mb-2">
+                    <h3 className="text-3xl font-bold mb-6 group-hover:text-[#2ecc71] transition duration-500">
                       {session.title}
                     </h3>
 
-                    <p className="text-gray-400 mb-6">
-                      {session.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-6 text-sm text-gray-400">
+                    <div className="flex flex-wrap gap-8 text-[10px] font-black uppercase tracking-widest text-gray-500">
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-[#2ecc71]" />
-                        Capacité: {session.capacity || "Illimitée"}
+                        {session.capacity || "Illimitée"}
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -173,39 +149,13 @@ export default function EventDetail() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => toggleFavorite(session.id)}
-                    className={`ml-4 p-2 rounded-xl transition ${
-                      isFav
-                        ? "text-[#2ecc71] bg-[#2ecc71]/10"
-                        : "text-gray-500 hover:bg-white/5"
-                    }`}
-                  >
-                    <Star className={`w-6 h-6 ${isFav ? "fill-current" : ""}`} />
-                  </button>
-                </div>
-
-                {live && (
-                  <div className="mt-6 pt-6 border-t border-white/10">
-                    <div className="flex items-center gap-2 mb-4">
-                      <MessageCircle className="w-5 h-5 text-[#2ecc71]" />
-                      <h4 className="font-bold">
-                        Questions & Réponses
-                      </h4>
-                    </div>
-
-                    <QuestionList
-                      questions={session.questions}
-                      sessionId={session.id}
-                      isLive={live}
-                      onQuestionAdded={() => {
-                        fetchSessions();
-                        setRefresh(r => r + 1);
-                      }}
-                    />
+                  <div className="flex items-center gap-4">
+                    <span className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-full group-hover:bg-[#2ecc71] group-hover:text-black transition duration-500">
+                      <ArrowRight className="w-6 h-6" />
+                    </span>
                   </div>
-                )}
-              </div>
+                </div>
+              </Link>
             );
           })}
         </div>

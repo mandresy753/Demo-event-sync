@@ -44,7 +44,7 @@ export async function PUT(
 ) {
   const { id } = await context.params;
 
-  const { title, description, location, startDate, endDate } =
+  const { title, description, location, startDate, endDate, imageUrl } =
     await req.json();
 
   const event = await prisma.event.update({
@@ -53,6 +53,7 @@ export async function PUT(
       title,
       description,
       location,
+      imageUrl,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
     },

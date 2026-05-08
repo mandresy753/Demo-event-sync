@@ -1,144 +1,132 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Clock, MapPin, Star } from "lucide-react";
+import { Star, Clock, MapPin, ArrowRight, Trash2 } from "lucide-react";
 
 type Session = {
   id: string;
   title: string;
-  description: string;
   startTime: string;
   endTime: string;
-  capacity: number | null;
   room: { name: string };
-  speakers: Array<{ speaker: { id: string; name: string; photoUrl: string | null } }>;
+  event: { title: string };
 };
 
-type SessionCard = Session & { event: { title: string } };
-
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [sessions, setSessions] = useState<SessionCard[]>([]);
+  const [favorites, setFavorites] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("favorites") || "[]");
-    setFavorites(stored);
+    const fetchFavorites = async () => {
+      const storedIds = JSON.parse(localStorage.getItem("favorites") || "[]");
+      if (storedIds.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const promises = storedIds.map((id: string) =>
+          fetch(`/api/sessions/${id}`).then((res) => res.json())
+        );
+        const data = await Promise.all(promises);
+        setFavorites(data.filter((s) => !s.error));
+      } catch (error) {
+        console.error("Error fetching favorites:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFavorites();
   }, []);
 
-  useEffect(() => {
-    if (!favorites.length) {
-      setSessions([]);
-      setLoading(false);
-      return;
-    }
-
-    fetch("/api/sessions", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        setSessions(data.filter((s: SessionCard) => favorites.includes(s.id)));
-        setLoading(false);
-      });
-  }, [favorites]);
-
-  const removeFavorite = (sessionId: string) => {
-    const updated = favorites.filter((id) => id !== sessionId);
-    setFavorites(updated);
-    localStorage.setItem("favorites", JSON.stringify(updated));
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  const removeFavorite = (id: string) => {
+    const storedIds = JSON.parse(localStorage.getItem("favorites") || "[]");
+    const updatedIds = storedIds.filter((favId: string) => favId !== id);
+    localStorage.setItem("favorites", JSON.stringify(updatedIds));
+    setFavorites(favorites.filter((s) => s.id !== id));
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2ecc71]"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-black py-24">
-      <div className="max-w-6xl mx-auto px-6">
-
+    <div className="min-h-screen bg-black py-24 text-white">
+      <div className="max-w-5xl mx-auto px-6">
         <div className="mb-14">
-          <span className="inline-block bg-[#2ecc71]/10 text-[#2ecc71] text-[10px] font-black px-4 py-1.5 rounded-full border border-[#2ecc71]/20 uppercase tracking-[0.2em] mb-6">
-            EventSync
+          <span className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.3em] mb-2 block">
+            VOTRE ITINÉRAIRE
           </span>
-
-          <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">
-            Mes sessions favorites
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter">
+            Sessions Favorites
           </h1>
-
           <p className="mt-4 text-gray-400 max-w-2xl">
-            Retrouvez vos sessions sauvegardées et gérez votre planning en un clic.
+            Retrouvez ici toutes les sessions que vous avez marquées comme favorites pour ne rien manquer.
           </p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-24">
-            <div className="w-12 h-12 border-2 border-[#2ecc71] border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-20 text-center text-gray-400">
-            Aucun favori pour le moment
+        {favorites.length === 0 ? (
+          <div className="text-center py-24 bg-white/5 border border-white/10 rounded-[40px]">
+            <Star className="w-16 h-16 text-white/10 mx-auto mb-6" />
+            <p className="text-gray-500 text-lg mb-8">Vous n'avez pas encore de sessions favorites.</p>
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#2ecc71] text-black font-black uppercase text-xs tracking-widest rounded-2xl hover:opacity-90 transition"
+            >
+              Explorer le programme
+            </Link>
           </div>
         ) : (
-          <div className="grid gap-8">
-            {sessions.map((session) => (
+          <div className="grid gap-6">
+            {favorites.map((session) => (
               <div
                 key={session.id}
-                className="bg-white/5 backdrop-blur border border-white/10 rounded-[32px] p-8 hover:bg-white/10 transition"
+                className="group relative bg-white/5 border border-white/10 rounded-[32px] p-8 hover:border-[#2ecc71] transition"
               >
-                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
-
-                  <div>
-                    <h2 className="text-2xl font-black text-white tracking-tight">
-                      {session.title}
-                    </h2>
-                    <p className="text-gray-400 mt-2">
-                      {session.description}
-                    </p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex-1">
+                    <span className="inline-block px-3 py-1 bg-[#2ecc71]/10 text-[#2ecc71] text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+                      {session.event.title}
+                    </span>
+                    <h2 className="text-2xl font-bold mb-4">{session.title}</h2>
+                    <div className="flex flex-wrap gap-6 text-[10px] text-gray-500 font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#2ecc71]" />
+                        {new Date(session.startTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#2ecc71]" />
+                        {session.room.name}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">
-
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-[#2ecc71]" />
-                      {new Date(session.startTime).toLocaleTimeString("fr-FR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-
-                    <span className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-[#2ecc71]" />
-                      {session.room.name}
-                    </span>
-
-                    <span className="flex items-center gap-2 text-[#2ecc71]">
-                      <Star className="w-4 h-4 fill-current" />
-                      FAVORI
-                    </span>
-
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => removeFavorite(session.id)}
+                      className="p-4 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition"
+                      title="Retirer des favoris"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <Link
+                      href={`/sessions/${session.id}`}
+                      className="p-4 bg-[#2ecc71] text-black rounded-2xl hover:opacity-90 transition"
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </Link>
                   </div>
                 </div>
-
-                <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-
-                  <Link
-                    href={`/sessions/${session.id}`}
-                    className="text-[#2ecc71] font-black text-[10px] uppercase tracking-[0.3em] hover:tracking-[0.35em] transition"
-                  >
-                    voir la session
-                  </Link>
-
-                  <button
-                    onClick={() => removeFavorite(session.id)}
-                    className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold transition"
-                  >
-                    Retirer
-                  </button>
-
-                </div>
-
               </div>
             ))}
           </div>
         )}
-
       </div>
     </div>
   );

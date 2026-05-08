@@ -1,135 +1,130 @@
-﻿"use client";
-
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { User, Globe, AtSign, ArrowLeft, Clock, MapPin } from "lucide-react";
 
-type Speaker = {
-  id: string;
-  name: string;
-  bio: string | null;
-  photoUrl: string | null;
-  socialLinks?: Record<string, string> | null;
-  sessions: Array<{
-    session: {
-      id: string;
-      title: string;
-      event: { title: string };
-      room: { name: string };
-    };
-  }>;
-};
+export default async function SpeakerDetailPage({
+  params,
+}: {
+  params: Promise<{ speakerId: string }>;
+}) {
+  const { speakerId } = await params;
 
-export default function SpeakerDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [speaker, setSpeaker] = useState<Speaker | null>(null);
-  const [loading, setLoading] = useState(true);
+  const speaker = await prisma.speaker.findUnique({
+    where: { id: speakerId },
+    include: {
+      sessions: {
+        include: {
+          session: {
+            include: {
+              room: true,
+              event: true,
+            },
+          },
+        },
+      },
+    },
+  });
 
-  useEffect(() => {
-    if (!params.speakerId) return;
-
-    fetch(`/api/speakers/${params.speakerId}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        setSpeaker(data);
-        setLoading(false);
-      });
-  }, [params.speakerId]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2ecc71]"></div>
-      </div>
-    );
-  }
-
-  if (!speaker) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        Intervenant non trouvé.
-      </div>
-    );
-  }
+  if (!speaker) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Intervenant non trouvé</div>;
 
   return (
-    <div className="min-h-screen bg-black py-24">
-      <div className="max-w-6xl mx-auto px-6">
-
-        <button
-          onClick={() => router.back()}
-          className="mb-10 inline-flex items-center gap-2 text-[#2ecc71] font-black uppercase text-[10px] tracking-[0.3em] hover:opacity-80 transition"
+    <div className="min-h-screen bg-black text-white py-24">
+      <div className="max-w-5xl mx-auto px-6">
+        <Link
+          href="/speakers"
+          className="mb-10 inline-flex items-center gap-2 text-[#2ecc71] uppercase tracking-[0.3em] text-xs font-black"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Retour
-        </button>
+          <ArrowLeft className="w-4 h-4" /> Tous les intervenants
+        </Link>
 
-        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-[32px] p-10">
-
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-10">
-
-            <div className="h-44 w-44 rounded-3xl overflow-hidden bg-white/10 flex items-center justify-center text-5xl font-black text-[#2ecc71] border border-white/10">
-              {speaker.photoUrl ? (
-                <img
-                  src={speaker.photoUrl}
-                  alt={speaker.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                speaker.name.charAt(0)
-              )}
-            </div>
-
-            <div>
-              <h1 className="text-5xl font-black tracking-tighter text-white">
-                {speaker.name}
-              </h1>
-
-              <p className="mt-5 text-gray-400 max-w-3xl leading-relaxed">
-                {speaker.bio || "Aucune biographie fournie."}
-              </p>
-            </div>
-
-          </div>
-
-          <div className="mt-14">
-
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-[#2ecc71] mb-6">
-              Sessions associées
-            </h2>
-
-            <div className="grid gap-6">
-
-              {speaker.sessions.map(({ session }) => (
-                <Link
-                  key={session.id}
-                  href={`/sessions/${session.id}`}
-                  className="group bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-[#2ecc71] transition"
-                >
-                  <h3 className="text-xl font-black text-white group-hover:text-[#2ecc71] transition">
-                    {session.title}
-                  </h3>
-
-                  <p className="text-gray-400 mt-2 text-sm">
-                    {session.event.title} • {session.room.name}
-                  </p>
-                </Link>
-              ))}
-
-              {speaker.sessions.length === 0 && (
-                <div className="text-gray-500 text-center py-10 border border-white/10 rounded-3xl">
-                  Aucune session associée
+        <div className="grid lg:grid-cols-3 gap-12">
+          {/* Sidebar Profil */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 text-center">
+                <div className="relative w-40 h-40 mx-auto mb-8">
+                  {speaker.photoUrl ? (
+                    <img
+                      src={speaker.photoUrl}
+                      alt={speaker.name}
+                      className="w-full h-full object-cover rounded-full grayscale"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-white/10 rounded-full flex items-center justify-center">
+                      <User className="w-16 h-16 text-white/20" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 rounded-full border-4 border-[#2ecc71]/20"></div>
                 </div>
-              )}
 
+                <h1 className="text-3xl font-black tracking-tight mb-2">
+                  {speaker.name}
+                </h1>
+                <p className="text-[#2ecc71] text-[10px] uppercase tracking-[0.3em] font-black mb-8">
+                  Intervenant
+                </p>
+
+                <div className="flex justify-center gap-4">
+                  <button className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition">
+                    <Globe className="w-5 h-5 text-gray-400" />
+                  </button>
+                  <button className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition">
+                    <AtSign className="w-5 h-5 text-gray-400" />
+                  </button>
+                  <button className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition">
+                    <AtSign className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
+              </div>
             </div>
-
           </div>
 
-        </div>
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-12">
+            <section>
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-gray-500 mb-6">
+                Biographie
+              </h2>
+              <p className="text-xl text-gray-300 leading-relaxed">
+                {speaker.bio || "Aucune biographie disponible pour le moment."}
+              </p>
+            </section>
 
+            <section>
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-gray-500 mb-8">
+                Sessions & Interventions
+              </h2>
+              <div className="space-y-4">
+                {speaker.sessions.map(({ session }) => (
+                  <Link
+                    key={session.id}
+                    href={`/sessions/${session.id}`}
+                    className="group block bg-white/5 border border-white/10 rounded-3xl p-6 hover:border-[#2ecc71] transition"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="px-3 py-1 bg-[#2ecc71]/10 text-[#2ecc71] rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {session.event.title}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-4 group-hover:text-[#2ecc71] transition">
+                      {session.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-6 text-[10px] text-gray-500 font-black uppercase tracking-widest">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#2ecc71]" />
+                        {new Date(session.startTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#2ecc71]" />
+                        {session.room.name}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );
